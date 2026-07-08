@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>데이터와 인공지능 퀴즈</title>
+<style>
+  :root{
+    --primary:#2563eb; --primary-dark:#1d4ed8;
+    --bg:#f1f5f9; --card:#ffffff; --fg:#111827;
+    --border:#d1d5db; --muted:#6b7280;
+    --ok:#16a34a; --bad:#dc2626; --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Pretendard',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background:var(--bg); color:var(--fg);
+    min-height:100vh; display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .wrap{width:100%; max-width:640px;}
+  .card{
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:28px 26px; margin-bottom:16px;
+  }
+  h1{font-size:24px; margin:0 0 4px;}
+  .sub{color:var(--muted); font-size:14px; margin:0 0 22px;}
+  label{display:block; font-size:14px; font-weight:600; margin:14px 0 6px;}
+  input{
+    width:100%; padding:12px 14px; font-size:16px;
+    border:1px solid var(--border); border-radius:10px; outline:none;
+  }
+  input:focus{border-color:var(--primary);}
+  button{
+    font-family:inherit; cursor:pointer; border:none; border-radius:10px;
+    font-size:16px; font-weight:700; padding:13px 18px;
+  }
+  .btn-primary{background:var(--primary); color:#fff; width:100%; margin-top:22px;}
+  .btn-primary:hover{background:var(--primary-dark);}
+  .btn-ghost{background:transparent; color:var(--muted); font-size:13px; font-weight:600; padding:8px; margin-top:14px; width:100%;}
+  .hidden{display:none;}
+
+  /* 퀴즈 */
+  .bar{height:8px; background:#e5e7eb; border-radius:99px; overflow:hidden; margin-bottom:18px;}
+  .bar > div{height:100%; background:var(--primary); width:0%; transition:width .3s;}
+  .qmeta{display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin-bottom:8px;}
+  .qtext{font-size:19px; font-weight:700; line-height:1.5; margin-bottom:20px;}
+  .opt{
+    display:block; width:100%; text-align:left; background:#f8fafc;
+    border:1.5px solid var(--border); border-radius:12px; padding:15px 16px;
+    font-size:16px; font-weight:500; margin-bottom:11px; color:var(--fg);
+  }
+  .opt:hover{border-color:var(--primary); background:#eff6ff;}
+  .opt.sel{border-color:var(--primary); background:#dbeafe;}
+  .nav{display:flex; gap:10px; margin-top:8px;}
+  .nav button{flex:1;}
+  .btn-sec{background:#e5e7eb; color:#374151;}
+
+  /* 결과 */
+  .score{font-size:52px; font-weight:800; color:var(--primary); text-align:center; margin:10px 0 2px;}
+  .score small{font-size:22px; color:var(--muted); font-weight:600;}
+  .review{border-top:1px solid var(--border); margin-top:20px; padding-top:16px;}
+  .rv{font-size:14px; padding:10px 0; border-bottom:1px solid #f1f5f9;}
+  .rv .q{font-weight:600;}
+  .tag{display:inline-block; font-size:12px; font-weight:700; padding:2px 8px; border-radius:6px; margin-right:6px;}
+  .tag.o{background:#dcfce7; color:var(--ok);}
+  .tag.x{background:#fee2e2; color:var(--bad);}
+
+  /* 관리자 */
+  table{width:100%; border-collapse:collapse; font-size:14px;}
+  th,td{padding:10px 8px; border-bottom:1px solid var(--border); text-align:left;}
+  th{background:#f8fafc; font-size:13px; color:#374151;}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  .adm-actions{display:flex; gap:8px; margin-top:16px;}
+  .adm-actions button{flex:1; font-size:14px;}
+  .btn-danger{background:#fee2e2; color:var(--bad);}
+  .empty{text-align:center; color:var(--muted); padding:28px 0; font-size:14px;}
+  .msg{font-size:13px; margin-top:8px; min-height:16px;}
+  .msg.err{color:var(--bad);} .msg.ok{color:var(--ok);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- 로그인 -->
+  <section id="login" class="card">
+    <h1>데이터와 인공지능 퀴즈</h1>
+    <p class="sub">6학년 실과 · 4지선다 10문항</p>
+    <label for="num">번호</label>
+    <input id="num" type="number" min="1" placeholder="예) 7" inputmode="numeric">
+    <label for="name">이름</label>
+    <input id="name" type="text" placeholder="예) 홍길동" maxlength="20">
+    <div class="msg err" id="loginMsg"></div>
+    <button class="btn-primary" onclick="startQuiz()">퀴즈 시작하기</button>
+    <button class="btn-ghost" onclick="openAdmin()">관리자 모드</button>
+  </section>
+
+  <!-- 퀴즈 -->
+  <section id="quiz" class="card hidden">
+    <div class="bar"><div id="progress"></div></div>
+    <div class="qmeta">
+      <span id="qCount"></span>
+      <span id="userTag"></span>
+    </div>
+    <div class="qtext" id="qText"></div>
+    <div id="opts"></div>
+    <div class="nav">
+      <button class="btn-sec" id="prevBtn" onclick="prevQ()">이전</button>
+      <button class="btn-primary" style="margin-top:0" id="nextBtn" onclick="nextQ()">다음</button>
+    </div>
+  </section>
+
+  <!-- 결과 -->
+  <section id="result" class="card hidden">
+    <h1>결과</h1>
+    <p class="sub" id="resultWho"></p>
+    <div class="score"><span id="scoreVal">0</span><small> / 10</small></div>
+    <p class="sub" style="text-align:center" id="scorePct"></p>
+    <div class="review" id="review"></div>
+    <button class="btn-primary" onclick="location.reload()">처음으로</button>
+  </section>
+
+  <!-- 관리자 -->
+  <section id="admin" class="card hidden">
+    <h1>관리자 페이지</h1>
+    <p class="sub">응시 기록 (번호 오름차순)</p>
+    <div id="adminTable"></div>
+    <div class="adm-actions">
+      <button class="btn-sec" onclick="exportCSV()">CSV 내보내기</button>
+      <button class="btn-danger" onclick="clearAll()">기록 전체 삭제</button>
+    </div>
+    <button class="btn-ghost" onclick="location.reload()">나가기</button>
+  </section>
+
+</div>
+
+<script>
+/* ====== 설정 ====== */
+var ADMIN_PW = "admin1234";           // 관리자 비밀번호 (원하는 값으로 변경)
+var STORE_KEY = "quiz_data_ai_records";
+
+/* ====== 문제 (정답 index는 0부터) ====== */
+var QUESTIONS = [
+  { q:"데이터(data)에 대한 설명으로 가장 알맞은 것은?",
+    o:["컴퓨터를 켜는 전원 버튼","관찰하거나 측정하여 모은 사실이나 값","인터넷을 연결하는 선","화면을 보호하는 유리"], a:1 },
+  { q:"인공지능(AI)이란 무엇인가요?",
+    o:["사람처럼 학습하고 판단하도록 만든 컴퓨터 기술","건전지로 움직이는 장난감","전기를 저장하는 장치","글씨를 쓰는 필기구"], a:0 },
+  { q:"매우 크고 다양하며 빠르게 늘어나는 대량의 데이터를 무엇이라 하나요?",
+    o:["빅데이터","작은데이터","종이데이터","숫자판"], a:0 },
+  { q:"기계가 데이터를 이용해 스스로 규칙을 찾아 학습하는 것을 무엇이라 하나요?",
+    o:["복사하기","머신러닝(기계학습)","전원끄기","드래그"], a:1 },
+  { q:"다음 중 인공지능이 활용된 예로 알맞은 것은?",
+    o:["음성 비서, 자율주행차, 얼굴 인식","연필과 지우개","종이접기","줄넘기"], a:0 },
+  { q:"데이터를 그래프나 그림으로 알기 쉽게 표현하는 것을 무엇이라 하나요?",
+    o:["데이터 시각화","데이터 삭제","데이터 잠금","데이터 인쇄"], a:0 },
+  { q:"개인정보를 안전하게 지키는 올바른 행동은?",
+    o:["비밀번호를 친구에게 알려준다","이름·주소·전화번호를 함부로 올리지 않는다","아무 사이트나 가입한다","비밀번호를 1234로만 쓴다"], a:1 },
+  { q:"인공지능을 바르게 사용하기 위한 태도로 알맞은 것은?",
+    o:["AI 결과를 무조건 믿는다","남에게 피해를 주지 않도록 책임 있게 사용한다","친구 사진을 몰래 이용한다","거짓 정보를 만들어 퍼뜨린다"], a:1 },
+  { q:"인공지능이 학습을 잘하려면 무엇이 많이 필요할까요?",
+    o:["질 좋은 데이터","무거운 돌","오래된 신문지","빈 상자"], a:0 },
+  { q:"인터넷에서 정보를 찾을 때 바람직한 자세는?",
+    o:["가장 먼저 나온 것을 그냥 믿는다","여러 자료를 비교하고 사실인지 확인한다","광고를 사실로 믿는다","확인 없이 친구에게 퍼뜨린다"], a:1 }
+];
+
+/* ====== 상태 ====== */
+var user = {num:null, name:""};
+var cur = 0;
+var answers = new Array(QUESTIONS.length).fill(null);
+
+/* ====== 로그인 ====== */
+function startQuiz(){
+  var num = document.getElementById('num').value.trim();
+  var name = document.getElementById('name').value.trim();
+  var msg = document.getElementById('loginMsg');
+  if(num===""||name===""){ msg.textContent="번호와 이름을 모두 입력해 주세요."; return; }
+  if(parseInt(num,10) < 1){ msg.textContent="번호는 1 이상으로 입력해 주세요."; return; }
+  user.num = parseInt(num,10); user.name = name;
+  show('quiz');
+  document.getElementById('userTag').textContent = user.num + "번 " + user.name;
+  render();
+}
+
+/* ====== 화면 전환 ====== */
+function show(id){
+  ['login','quiz','result','admin'].forEach(function(s){
+    document.getElementById(s).classList.add('hidden');
+  });
+  document.getElementById(id).classList.remove('hidden');
+}
+
+/* ====== 문제 렌더 ====== */
+function render(){
+  var Q = QUESTIONS[cur];
+  document.getElementById('qCount').textContent = "문제 " + (cur+1) + " / " + QUESTIONS.length;
+  document.getElementById('progress').style.width = ((cur)/QUESTIONS.length*100) + "%";
+  document.getElementById('qText').textContent = Q.q;
+  var box = document.getElementById('opts'); box.innerHTML="";
+  Q.o.forEach(function(text,i){
+    var b = document.createElement('button');
+    b.className = "opt" + (answers[cur]===i ? " sel":"");
+    b.textContent = (i+1)+". "+text;
+    b.onclick = function(){ answers[cur]=i; render(); };
+    box.appendChild(b);
+  });
+  document.getElementById('prevBtn').style.visibility = cur===0 ? "hidden":"visible";
+  document.getElementById('nextBtn').textContent = (cur===QUESTIONS.length-1) ? "제출하기":"다음";
+}
+function prevQ(){ if(cur>0){cur--; render();} }
+function nextQ(){
+  if(answers[cur]===null){ alert("보기 중 하나를 선택해 주세요."); return; }
+  if(cur < QUESTIONS.length-1){ cur++; render(); }
+  else { finish(); }
+}
+
+/* ====== 채점 & 저장 ====== */
+function finish(){
+  var score = 0;
+  QUESTIONS.forEach(function(Q,i){ if(answers[i]===Q.a) score++; });
+  saveRecord(score);
+  document.getElementById('resultWho').textContent = user.num + "번 " + user.name;
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('scorePct').textContent = "정답률 " + Math.round(score/QUESTIONS.length*100) + "%";
+  var rv = document.getElementById('review'); rv.innerHTML="";
+  QUESTIONS.forEach(function(Q,i){
+    var ok = answers[i]===Q.a;
+    var d = document.createElement('div'); d.className="rv";
+    var myAns = answers[i]!==null ? (answers[i]+1)+". "+Q.o[answers[i]] : "무응답";
+    d.innerHTML = '<span class="tag '+(ok?'o':'x')+'">'+(ok?'정답':'오답')+'</span>'+
+      '<span class="q">'+(i+1)+'. '+Q.q+'</span><br>'+
+      '<span style="color:var(--muted)">내 답: '+myAns+
+      (ok?'':' / 정답: '+(Q.a+1)+'. '+Q.o[Q.a])+'</span>';
+    rv.appendChild(d);
+  });
+  show('result');
+}
+function loadRecords(){
+  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || []; }
+  catch(e){ return []; }
+}
+function saveRecord(score){
+  var recs = loadRecords();
+  recs.push({num:user.num, name:user.name, score:score,
+             time:new Date().toLocaleString('ko-KR')});
+  localStorage.setItem(STORE_KEY, JSON.stringify(recs));
+}
+
+/* ====== 관리자 ====== */
+function openAdmin(){
+  var pw = prompt("관리자 비밀번호를 입력하세요.");
+  if(pw===null) return;
+  if(pw!==ADMIN_PW){ alert("비밀번호가 올바르지 않습니다."); return; }
+  renderAdmin(); show('admin');
+}
+function renderAdmin(){
+  var recs = loadRecords();
+  recs.sort(function(a,b){
+    if(a.num!==b.num) return a.num-b.num;
+    return a.name.localeCompare(b.name,'ko');
+  });
+  var box = document.getElementById('adminTable');
+  if(recs.length===0){ box.innerHTML='<div class="empty">아직 응시 기록이 없습니다.</div>'; return; }
+  var html='<table><thead><tr><th>번호</th><th>이름</th><th style="text-align:right">점수</th><th>응시 시각</th></tr></thead><tbody>';
+  recs.forEach(function(r){
+    html += '<tr><td class="num">'+r.num+'</td><td>'+escapeHtml(r.name)+
+            '</td><td class="num">'+r.score+' / 10</td><td style="color:var(--muted)">'+r.time+'</td></tr>';
+  });
+  html+='</tbody></table>';
+  box.innerHTML=html;
+}
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g,function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function clearAll(){
+  if(confirm("모든 응시 기록을 삭제할까요? 되돌릴 수 없습니다.")){
+    localStorage.removeItem(STORE_KEY); renderAdmin();
+  }
+}
+function exportCSV(){
+  var recs = loadRecords();
+  if(recs.length===0){ alert("내보낼 기록이 없습니다."); return; }
+  recs.sort(function(a,b){ return a.num-b.num; });
+  var csv="번호,이름,점수,응시시각\n";
+  recs.forEach(function(r){ csv += r.num+',"'+r.name+'",'+r.score+',"'+r.time+'"\n'; });
+  var blob = new Blob(["\uFEFF"+csv], {type:"text/csv;charset=utf-8;"});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = "퀴즈결과.csv"; a.click();
+}
+</script>
+</body>
+</html>
